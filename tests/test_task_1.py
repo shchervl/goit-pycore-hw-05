@@ -1,5 +1,3 @@
-import logging
-import pytest
 from tasks.task_1 import caching_fibonacci
 
 
@@ -19,23 +17,26 @@ def test_negative_returns_zero():
     assert fib(-10) == 0
 
 
-def test_known_fibonacci_values_served_from_cache(caplog):
+def test_known_fibonacci_values_served_from_cache():
     fib = caching_fibonacci()
 
     # Warm the cache up to fib(20)
-    with caplog.at_level(logging.DEBUG, logger="tasks.task_1"):
-        fib(20)
-        caplog.clear()  # discard warm-up log records
+    fib(20)
+    hits_after_warmup = caching_fibonacci.cache_hits
 
-        # All smaller known values must now come from cache, not recomputed
-        expected = {2: 1, 3: 2, 4: 3, 5: 5, 6: 8, 7: 13, 10: 55, 20: 6765}
-        for n, val in expected.items():
-            caplog.clear()
-            result = fib(n)
-            assert result == val, f"fib({n}) should be {val}"
-            assert any("cache hit" in r.message for r in caplog.records), (
-                f"fib({n}) should have been served from cache"
-            )
+    # All smaller known values must now come from cache, not recomputed
+    expected = {2: 1, 3: 2, 4: 3, 5: 5, 6: 8, 7: 13, 10: 55, 20: 6765}
+    for n, val in expected.items():
+        hits_before = caching_fibonacci.cache_hits
+        misses_before = caching_fibonacci.cache_misses
+        result = fib(n)
+        assert result == val, f"fib({n}) should be {val}"
+        assert (
+            caching_fibonacci.cache_hits == hits_before + 1
+        ), f"fib({n}) should have been a cache hit"
+        assert (
+            caching_fibonacci.cache_misses == misses_before
+        ), f"fib({n}) should not have triggered a new computation"
 
 
 def test_independent_instances_have_separate_caches():
@@ -51,35 +52,27 @@ def test_independent_instances_have_separate_caches():
 
     # Populate fib1's cache
     fib1(10)
-    assert 10 in cache1      # fib1 cached the result
+    assert 10 in cache1  # fib1 cached the result
     assert 10 not in cache2  # fib2's cache is unaffected
 
 
-def test_cache_hit_logged(caplog):
+def test_cache_hit_increments_counter():
     fib = caching_fibonacci()
-
-    with caplog.at_level(logging.DEBUG, logger="tasks.task_1"):
-        fib(5)               # populate cache
-        caplog.clear()       # discard warm-up log records
-        fib(5)               # should log a cache hit
-        assert any("cache hit" in r.message for r in caplog.records)
+    fib(5)  # populate cache (internal recursion may also hit cache)
+    hits_before = caching_fibonacci.cache_hits  # snapshot after warm-up
+    fib(5)  # top-level call must be exactly one more cache hit
+    assert caching_fibonacci.cache_hits == hits_before + 1
 
 
-def test_larger_value_uses_cache_for_known_entries(caplog):
+def test_larger_value_uses_cache_for_known_entries():
     fib = caching_fibonacci()
+    fib(20)  # warm cache with fib(1)..fib(20)
+    misses_after_warmup = caching_fibonacci.cache_misses
 
-    with caplog.at_level(logging.DEBUG, logger="tasks.task_1"):
-        fib(20)        # warm cache with fib(1)..fib(20)
-        caplog.clear()
+    result = fib(30)
+    assert result == 832040
 
-        result = fib(30)
-        assert result == 832040
-
-        messages = [r.message for r in caplog.records]
-        computed  = [m for m in messages if "computed" in m]
-        cache_hits = [m for m in messages if "cache hit" in m]
-
-        # fib(21)..fib(30) must be freshly computed — exactly 10 new entries
-        assert len(computed) == 10
-        # previously cached values (≤20) must be reused, not recomputed
-        assert len(cache_hits) > 0
+    # fib(21)..fib(30) must be freshly computed — exactly 10 new misses
+    assert caching_fibonacci.cache_misses == misses_after_warmup + 10
+    # previously cached values (≤20) must be reused, not recomputed
+    assert caching_fibonacci.cache_hits > 0
