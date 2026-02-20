@@ -13,9 +13,6 @@ def caching_fibonacci():
             - ``cache_misses`` — number of times a result was freshly computed
     """
     cache = {}
-    caching_fibonacci.cache_hits = 0
-    caching_fibonacci.cache_misses = 0
-
 
     def fibonacci(n: int) -> int:
         """Return the n-th Fibonacci number, using a shared cache.
@@ -36,10 +33,12 @@ def caching_fibonacci():
         if n == 1:
             return 1
         if n in cache:
-            caching_fibonacci.cache_hits += 1
+            fibonacci.cache_hits += 1
             return cache[n]
         cache[n] = fibonacci(n - 1) + fibonacci(n - 2)
-        caching_fibonacci.cache_misses += 1
+        fibonacci.cache_misses += 1
         return cache[n]
 
+    fibonacci.cache_hits = 0
+    fibonacci.cache_misses = 0
     return fibonacci

@@ -22,20 +22,20 @@ def test_known_fibonacci_values_served_from_cache():
 
     # Warm the cache up to fib(20)
     fib(20)
-    hits_after_warmup = caching_fibonacci.cache_hits
+    hits_after_warmup = fib.cache_hits
 
     # All smaller known values must now come from cache, not recomputed
     expected = {2: 1, 3: 2, 4: 3, 5: 5, 6: 8, 7: 13, 10: 55, 20: 6765}
     for n, val in expected.items():
-        hits_before = caching_fibonacci.cache_hits
-        misses_before = caching_fibonacci.cache_misses
+        hits_before = fib.cache_hits
+        misses_before = fib.cache_misses
         result = fib(n)
         assert result == val, f"fib({n}) should be {val}"
         assert (
-            caching_fibonacci.cache_hits == hits_before + 1
+            fib.cache_hits == hits_before + 1
         ), f"fib({n}) should have been a cache hit"
         assert (
-            caching_fibonacci.cache_misses == misses_before
+            fib.cache_misses == misses_before
         ), f"fib({n}) should not have triggered a new computation"
 
 
@@ -59,20 +59,20 @@ def test_independent_instances_have_separate_caches():
 def test_cache_hit_increments_counter():
     fib = caching_fibonacci()
     fib(5)  # populate cache (internal recursion may also hit cache)
-    hits_before = caching_fibonacci.cache_hits  # snapshot after warm-up
+    hits_before = fib.cache_hits  # snapshot after warm-up
     fib(5)  # top-level call must be exactly one more cache hit
-    assert caching_fibonacci.cache_hits == hits_before + 1
+    assert fib.cache_hits == hits_before + 1
 
 
 def test_larger_value_uses_cache_for_known_entries():
     fib = caching_fibonacci()
     fib(20)  # warm cache with fib(1)..fib(20)
-    misses_after_warmup = caching_fibonacci.cache_misses
+    misses_after_warmup = fib.cache_misses
 
     result = fib(30)
     assert result == 832040
 
     # fib(21)..fib(30) must be freshly computed — exactly 10 new misses
-    assert caching_fibonacci.cache_misses == misses_after_warmup + 10
+    assert fib.cache_misses == misses_after_warmup + 10
     # previously cached values (≤20) must be reused, not recomputed
-    assert caching_fibonacci.cache_hits > 0
+    assert fib.cache_hits > 0
