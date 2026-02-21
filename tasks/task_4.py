@@ -80,7 +80,7 @@ def print_dict_as_list(dictionary: dict, headers: list):
     if not dictionary:
         print_error(f"There is no records yet.")
         return
-    print(tabulate(dictionary.items(), headers=headers, tablefmt="rounded_outline"))
+    print(f"{tabulate(dictionary.items(), headers=headers, tablefmt='rounded_outline')}")
 
 
 def validate_phone(phone: str) -> None:
