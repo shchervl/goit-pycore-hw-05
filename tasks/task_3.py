@@ -2,6 +2,9 @@ from collections import Counter
 import sys
 from tabulate import tabulate
 
+# Could be replaced by automatic parsing if we 100% sure that log format stays the same
+# Pagination of output for big files is skiped intentionally to not overload the code 
+
 """Supported log levels, in display order."""
 LOG_LEVELS = ("INFO", "ERROR", "WARNING", "DEBUG")
 
